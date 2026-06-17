@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "tilda": {
+      "command": "node",
+      "args": ["F:/projects/tilda-mcp/dist/index.js"],
+      "env": {
+        "TILDA_PUBLIC_KEY": "",
+        "TILDA_SECRET_KEY": "",
+        "TILDA_CDP_URL": "http://localhost:9222"
+      }
+    }
+  }
+}

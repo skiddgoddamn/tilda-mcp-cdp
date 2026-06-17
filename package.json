@@ -1,0 +1,60 @@
+{
+  "name": "tilda-mcp-cdp",
+  "version": "1.2.0",
+  "description": "MCP-сервер для Tilda — чтение через официальный API + массовое редактирование (Яндекс.Метрика, код-блоки, ссылки Zero Block, публикация) через залогиненный Chrome по CDP.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "tilda-mcp-cdp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "playwright-core": "^1.61.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.1"
+  },
+  "mcpName": "io.github.skiddgoddamn/tilda-mcp-cdp",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude",
+    "ai",
+    "tilda",
+    "website-builder",
+    "cms",
+    "cdp",
+    "automation",
+    "playwright",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skiddgoddamn/tilda-mcp-cdp.git"
+  },
+  "homepage": "https://github.com/skiddgoddamn/tilda-mcp-cdp#readme",
+  "bugs": {
+    "url": "https://github.com/skiddgoddamn/tilda-mcp-cdp/issues"
+  },
+  "author": "skiddgoddamn (https://github.com/skiddgoddamn)"
+}
