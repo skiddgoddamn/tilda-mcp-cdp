@@ -1,0 +1,31 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - TILDA_PUBLIC_KEY
+      - TILDA_SECRET_KEY
+    properties:
+      TILDA_PUBLIC_KEY:
+        type: string
+        title: Tilda Public Key
+        description: Public API key from https://tilda.cc/identity/apikeys/
+      TILDA_SECRET_KEY:
+        type: string
+        title: Tilda Secret Key
+        description: Secret API key from https://tilda.cc/identity/apikeys/
+      TILDA_CDP_URL:
+        type: string
+        title: Chrome CDP URL
+        description: "URL отладочного Chrome для инструментов записи (по умолчанию http://localhost:9222). Нужен запущенный Chrome с входом в Tilda."
+        default: "http://localhost:9222"
+  commandFunction: |
+    (config) => ({
+      command: "node",
+      args: ["dist/index.js"],
+      env: {
+        TILDA_PUBLIC_KEY: config.TILDA_PUBLIC_KEY,
+        TILDA_SECRET_KEY: config.TILDA_SECRET_KEY,
+        TILDA_CDP_URL: config.TILDA_CDP_URL || "http://localhost:9222",
+      },
+    })
