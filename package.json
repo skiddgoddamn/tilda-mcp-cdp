@@ -1,7 +1,7 @@
 {
   "name": "tilda-mcp-cdp",
-  "version": "1.2.0",
-  "description": "MCP-сервер для Tilda — чтение через официальный API + массовое редактирование (Яндекс.Метрика, код-блоки, ссылки Zero Block, публикация) через залогиненный Chrome по CDP.",
+  "version": "1.3.0",
+  "description": "MCP-сервер для Tilda — чтение через официальный API + массовое редактирование и полноценный редактор Zero Block (Яндекс.Метрика, код-блоки, элементы Zero Block, публикация) через залогиненный Chrome по CDP.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

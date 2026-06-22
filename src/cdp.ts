@@ -1,5 +1,6 @@
 import { chromium } from "playwright-core";
 import type { Browser, Page, Frame } from "playwright-core";
+import type { ZeroModel } from "./tools/zero-model.js";
 
 /**
  * Слой действий (запись) для Tilda.
@@ -131,6 +132,79 @@ export async function publishCurrentPage(page: Page): Promise<boolean> {
     }
   }
   return false;
+}
+
+// ── Zero Block: чтение/запись модели элементов через внутренний save-API ──
+// Используется детерминированный путь (как в replace_zero_links): берём модель из
+// window.ab__getDBSaveData(), правим её в Node, сохраняем POST /zero/submit/.
+// Без кликов по холсту.
+
+export interface OpenZeroResult {
+  frame: Frame;
+  /** Числовой recid открытого Zero Block. */
+  rec: string;
+}
+
+/** Открыть артборд Zero Block по recId или по содержимому (match — regexp). */
+export async function openZeroArtboard(
+  page: Page,
+  pageid: string,
+  sel: { recId?: string; match?: string },
+): Promise<OpenZeroResult> {
+  await openPageEditor(page, pageid);
+  let rec = sel.recId ?? null;
+  if (!rec && sel.match) rec = await findRecordByContent(page, sel.match);
+  if (!rec) throw new Error("Zero Block не найден: укажите recId или match (regexp по содержимому).");
+  await clickRecordButton(page, rec, "Редактировать блок");
+  await page.waitForURL("**/zero/**", { timeout: 15000 }).catch(() => {});
+  const frame = await findAbFrame(page, 35000);
+  if (!frame) throw new Error("Артборд (ab__getDBSaveData) не готов.");
+  return { frame, rec };
+}
+
+export interface ZeroModelData {
+  pageid: string | null;
+  recordid: string | null;
+  elements: ZeroModel;
+  zbGrid: Record<string, unknown> | null;
+}
+
+/** Прочитать модель открытого артборда (элементы + сетка + id страницы/записи). */
+export async function readZeroModel(frame: Frame): Promise<ZeroModelData> {
+  return frame.evaluate(() => {
+    const w = window as unknown as { ab__getDBSaveData: () => { cleanElementsData: unknown; zbGrid: unknown } };
+    const ab = document.querySelector(".tn-artboard") as HTMLElement | null;
+    const d = w.ab__getDBSaveData();
+    return {
+      pageid: ab ? ab.getAttribute("data-page-id") : null,
+      recordid: ab ? ab.getAttribute("data-record-id") : null,
+      elements: d.cleanElementsData as ZeroModelData["elements"],
+      zbGrid: (d.zbGrid as Record<string, unknown> | null) ?? null,
+    };
+  });
+}
+
+/** Сохранить модель артборда обратно (POST /zero/submit/). Возвращает ответ сервера (обрезанный). */
+export async function saveZeroModel(frame: Frame, data: ZeroModelData): Promise<string> {
+  return frame.evaluate(async (payload) => {
+    const w = window as unknown as { tn__createFormData: (o: unknown) => unknown };
+    const y = {
+      comm: "savezerocode",
+      pageid: payload.pageid,
+      recordid: payload.recordid,
+      onlythisfield: "code",
+      fromzero: "yes",
+      code: JSON.stringify(payload.elements),
+      zb_grid:
+        payload.zbGrid && Object.keys(payload.zbGrid).length ? JSON.stringify(payload.zbGrid) : "reset",
+    };
+    try {
+      const r = await fetch("/zero/submit/", { method: "POST", body: w.tn__createFormData(y) as BodyInit });
+      return (await r.text()).slice(0, 80);
+    } catch (e) {
+      return "ERR:" + (e as Error).message;
+    }
+  }, data as unknown as { pageid: string | null; recordid: string | null; elements: unknown; zbGrid: Record<string, unknown> | null });
 }
 
 /** Получить живой HTML сайта через браузер (с обходом кэша). */

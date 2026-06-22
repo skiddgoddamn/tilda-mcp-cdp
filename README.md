@@ -1,8 +1,9 @@
 # tilda-mcp-cdp
 
-MCP-сервер для **Tilda** с поддержкой массового редактирования. **11 инструментов:**
-5 на чтение через официальный API + 6 на запись через залогиненный Chrome по CDP
-(Яндекс.Метрика, код-блоки T123, ссылки Zero Block, публикация, проверка живого кода).
+MCP-сервер для **Tilda** с поддержкой массового редактирования. **16 инструментов:**
+5 на чтение через официальный API + 11 на запись через залогиненный Chrome по CDP
+(Яндекс.Метрика, код-блоки T123, ссылки Zero Block, **полноценный редактор элементов
+Zero Block**, публикация, проверка живого кода).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -68,7 +69,7 @@ TILDA_PUBLIC_KEY=xxx TILDA_SECRET_KEY=yyy node dist/index.js --http --port 3001
 # Endpoint: http://localhost:3001/mcp   Health: http://localhost:3001/health
 ```
 
-## Инструменты (11)
+## Инструменты (16)
 
 ### Чтение — официальный API
 
@@ -91,15 +92,32 @@ TILDA_PUBLIC_KEY=xxx TILDA_SECRET_KEY=yyy node dist/index.js --http --port 3001
 | `publish_page` | `pageid` | Опубликовать страницу |
 | `verify_live` | `urls`, `contains?`, `notContains?` | Проверка живого HTML на наличие/отсутствие подстрок |
 
+### Редактор Zero Block — через CDP
+
+Полноценное редактирование элементов Zero Block по модели артборда (детерминированно,
+без кликов по холсту). Сначала всегда `zero_get_elements`, чтобы увидеть реальные id и
+имена полей, потом правишь.
+
+| Инструмент | Аргументы | Описание |
+|------------|-----------|----------|
+| `zero_get_elements` | `pageid`, `recId?`/`match?`, `raw?` | Список элементов блока: тип, текст, ссылки, геометрия, все поля (`raw` — полный объект) |
+| `zero_update_element` | `pageid`, `recId?`/`match?`, `id?`/`index?`/`textContains?`, `patch`, `publish?` | Deep-merge JSON-патча в элемент(ы): текст, цвет, шрифт, размер, позиция, ссылка (`null` удаляет поле) |
+| `zero_add_element` | `pageid`, `recId?`/`match?`, `cloneId?`/`cloneIndex?`/`cloneTextContains?`, `element?`, `patch?`, `newId?`, `publish?` | Добавить элемент: клон существующего (schema-safe) + патч, либо произвольный JSON-объект |
+| `zero_delete_element` | `pageid`, `recId?`/`match?`, `id?`/`index?`/`textContains?`, `publish?` | Удалить выбранный элемент(ы) |
+| `zero_set_text` | `pageid`, `recId?`/`match?`, `find`, `replace`, `publish?` | Regexp-замена текста/строк по всей модели блока |
+
 - `find` — это **регулярное выражение** (флаг `g` применяется автоматически).
-- `replace_page_code` и `replace_zero_links` по умолчанию публикуют страницу (`publish: true`).
+- Действия записи (`replace_page_code`, `replace_zero_links`, `zero_*`) по умолчанию публикуют страницу (`publish: true`).
 - Изменения видны на сайте только после публикации.
+- **Выбор Zero Block:** `recId` (если знаешь) или `match` — regexp по содержимому блока.
+- **Выбор элемента:** `id` (ключ из `zero_get_elements`), `index` (0-based) или `textContains`. Критерии объединяются по И.
 
 ### Как это работает под капотом
 
 - **Метрика** — поле `#yandexmetrikaid` в настройках проекта (вкладка «Аналитика»).
 - **Код-блоки T123** — содержимое редактируется в ACE-редакторе (`window.ace`), сохранение «Сохранить и закрыть».
 - **Ссылки Zero Block** — берётся модель блока (`ab__getDBSaveData()`), ссылки заменяются в `cleanElementsData` и сохраняются POST-запросом `/zero/submit/` (детерминированно, без кликов по холсту).
+- **Редактор Zero Block** (`zero_*`) — тот же путь, обобщённый: модель `cleanElementsData` читается из артборда наружу, правится в Node (deep-merge патча / клонирование / удаление / regexp) и сохраняется обратно `/zero/submit/`. Схема полей не хардкодится — `zero_get_elements` показывает реальные имена, новые элементы создаются клонированием существующих (всегда валидны).
 - **Публикация** — кнопка `#page_menu_publishlink`.
 - **Проверка** — живой HTML грузится через сам браузер с обходом кэша (`tilda.ws` отдаёт 403 на прямые запросы).
 
@@ -117,6 +135,12 @@ TILDA_PUBLIC_KEY=xxx TILDA_SECRET_KEY=yyy node dist/index.js --http --port 3001
 На странице 131579756 замени в коде counterID=108377870 на counterID=109756541
 На странице 131579756 замени ссылку https://t\.me/\+\w+ на https://t.me/+NEW и опубликуй
 Проверь, что на dubaiphonemart.com есть +NEW и нет +OLD
+
+# Редактор Zero Block
+Покажи элементы Zero Block на странице 131579756 (match: "Оставить заявку")
+В блоке с текстом "45%" поменяй текст элемента с "45" на "от 45% годовых*"
+Добавь вторую кнопку: склонируй элемент с textContains "Оставить заявку", патч text="Узнать подробнее", top=650
+Удали элемент с index 4 в Zero Block страницы 131579756
 ```
 
 ## Разработка
