@@ -17,13 +17,20 @@ import {
   publishPageSchema, handlePublishPage,
   verifyLiveSchema, handleVerifyLive,
 } from "./tools/actions.js";
+import {
+  zeroGetElementsSchema, handleZeroGetElements,
+  zeroUpdateElementSchema, handleZeroUpdateElement,
+  zeroAddElementSchema, handleZeroAddElement,
+  zeroDeleteElementSchema, handleZeroDeleteElement,
+  zeroSetTextSchema, handleZeroSetText,
+} from "./tools/zero.js";
 
-const TOOL_COUNT = 11;
+const TOOL_COUNT = 16;
 
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "tilda-mcp-cdp",
-    version: "1.2.0",
+    version: "1.3.0",
   });
 
   server.tool(
@@ -104,6 +111,44 @@ function createMcpServer(): McpServer {
     "Проверить живой HTML сайтов: какие подстроки присутствуют/отсутствуют (с обходом кэша).",
     verifyLiveSchema.shape,
     async (params) => ({ content: [{ type: "text", text: await handleVerifyLive(params) }] }),
+  );
+
+  // ── Редактор Zero Block (через тот же save-API артборда) ──
+  // Читать модель → патчить/добавлять/удалять элементы → сохранять → публиковать.
+
+  server.tool(
+    "zero_get_elements",
+    "Прочитать модель Zero Block: список элементов (тип, текст, ссылки, геометрия, все поля). Вызывайте перед правками.",
+    zeroGetElementsSchema.shape,
+    async (params) => ({ content: [{ type: "text", text: await handleZeroGetElements(params) }] }),
+  );
+
+  server.tool(
+    "zero_update_element",
+    "Изменить элемент(ы) Zero Block: deep-merge JSON-патча по id/index/тексту — текст, цвет, шрифт, размер, позиция, ссылка. По умолчанию публикует.",
+    zeroUpdateElementSchema.shape,
+    async (params) => ({ content: [{ type: "text", text: await handleZeroUpdateElement(params) }] }),
+  );
+
+  server.tool(
+    "zero_add_element",
+    "Добавить элемент в Zero Block: клонировать существующий (schema-safe) с патчем или вставить произвольный объект. По умолчанию публикует.",
+    zeroAddElementSchema.shape,
+    async (params) => ({ content: [{ type: "text", text: await handleZeroAddElement(params) }] }),
+  );
+
+  server.tool(
+    "zero_delete_element",
+    "Удалить элемент(ы) Zero Block по id/index/тексту. По умолчанию публикует.",
+    zeroDeleteElementSchema.shape,
+    async (params) => ({ content: [{ type: "text", text: await handleZeroDeleteElement(params) }] }),
+  );
+
+  server.tool(
+    "zero_set_text",
+    "Заменить текст/строки (regexp) по всей модели Zero Block. По умолчанию публикует.",
+    zeroSetTextSchema.shape,
+    async (params) => ({ content: [{ type: "text", text: await handleZeroSetText(params) }] }),
   );
 
   return server;
